@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../AuthContext'
 import { Customer } from '../types'
-import { Search, Plus, User, LogOut, Store } from 'lucide-react'
+import { Search, Plus, User, LogOut, Store, AlertCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 const Dashboard: React.FC = () => {
-  const { profile, signOut } = useAuth()
+  const { user, profile, signOut, isConfirmed } = useAuth()
   const navigate = useNavigate()
   const [customers, setCustomers] = useState<Customer[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -37,6 +37,10 @@ const Dashboard: React.FC = () => {
     console.log('Add customer clicked, profile:', profile)
     if (!profile) {
       alert('Profile not found! Please try logging out and back in.')
+      return
+    }
+    if (!isConfirmed) {
+      alert('Please confirm your email address before adding customers!')
       return
     }
 
@@ -89,6 +93,32 @@ const Dashboard: React.FC = () => {
       </header>
 
       <main className="max-w-md mx-auto px-4 py-6 space-y-6">
+        {!isConfirmed && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-yellow-800">Confirm your email</h3>
+                <p className="text-sm text-yellow-700 mt-1">
+                  Please confirm your email address before adding customers. Check your inbox for a confirmation link!
+                </p>
+                <button
+                  onClick={async () => {
+                    const { error } = await supabase.auth.resend({
+                      type: 'signup',
+                      email: user?.email || '',
+                    })
+                    if (error) alert(error.message)
+                    else alert('Confirmation email resent! Check your inbox!')
+                  }}
+                  className="mt-3 w-full bg-yellow-600 text-white py-2 rounded-lg font-semibold hover:bg-yellow-700 transition-colors"
+                >
+                  Resend Confirmation Email
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
@@ -102,7 +132,12 @@ const Dashboard: React.FC = () => {
 
         <button
           onClick={() => setShowAddCustomer(true)}
-          className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-lg"
+          disabled={!isConfirmed}
+          className={`w-full py-3 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 shadow-lg ${
+            isConfirmed
+              ? 'bg-blue-600 text-white hover:bg-blue-700'
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          }`}
         >
           <Plus className="w-5 h-5" />
           Quick Add Customer
