@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { supabase } from '../supabaseClient'
+import { getSupabase } from '../supabaseClient'
 import { useAuth } from '../AuthContext'
 import { Customer, Ledger, Profile } from '../types'
 import { ArrowLeft, Store, Plus, Minus, AlertCircle, CheckCircle, DollarSign } from 'lucide-react'
@@ -23,6 +23,7 @@ const CustomerProfile: React.FC = () => {
   }, [customerId, profile])
 
   const fetchCustomer = async () => {
+    const supabase = getSupabase()
     const { data, error } = await supabase
       .from('customers')
       .select('*')
@@ -37,6 +38,7 @@ const CustomerProfile: React.FC = () => {
   }
 
   const fetchLedgers = async () => {
+    const supabase = getSupabase()
     const { data, error } = await supabase
       .from('ledgers')
       .select(`
@@ -76,7 +78,7 @@ const CustomerProfile: React.FC = () => {
   const handleUpdateLedger = async () => {
     if (!profile || !customerId) return
     setLoading(true)
-
+    const supabase = getSupabase()
     const credit = Number(newCredit) || 0
 
     if (myLedger) {

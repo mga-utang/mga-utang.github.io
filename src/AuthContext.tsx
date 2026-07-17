@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { supabase } from './supabaseClient'
+import { getSupabase } from './supabaseClient'
 import { User } from '@supabase/supabase-js'
 import { Profile } from './types'
 
@@ -21,6 +21,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const getSession = async () => {
+      const supabase = getSupabase()
       const { data: { session } } = await supabase.auth.getSession()
       setUser(session?.user ?? null)
       setIsConfirmed(!!session?.user?.email_confirmed_at)
@@ -30,6 +31,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false)
     }
 
+    const supabase = getSupabase()
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null)
       setIsConfirmed(!!session?.user?.email_confirmed_at)
@@ -49,6 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [])
 
   const fetchProfile = async (userId: string) => {
+    const supabase = getSupabase()
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -63,6 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const signOut = async () => {
+    const supabase = getSupabase()
     await supabase.auth.signOut()
   }
 

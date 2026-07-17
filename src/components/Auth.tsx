@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { supabase } from '../supabaseClient'
+import { getSupabase } from '../supabaseClient'
 import { Store, User, Mail, Lock, ArrowRight } from 'lucide-react'
 
 const Auth: React.FC = () => {
@@ -13,6 +13,7 @@ const Auth: React.FC = () => {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    const supabase = getSupabase()
 
     try {
       if (isSignUp) {

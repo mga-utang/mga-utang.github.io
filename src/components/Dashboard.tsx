@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { supabase } from '../supabaseClient'
+import { getSupabase } from '../supabaseClient'
 import { useAuth } from '../AuthContext'
 import { Customer } from '../types'
 import { Search, Plus, User, LogOut, Store, AlertCircle } from 'lucide-react'
@@ -20,6 +20,7 @@ const Dashboard: React.FC = () => {
   }, [])
 
   const fetchCustomers = async () => {
+    const supabase = getSupabase()
     const { data, error } = await supabase
       .from('customers')
       .select('*')
@@ -45,6 +46,7 @@ const Dashboard: React.FC = () => {
     }
 
     setLoading(true)
+    const supabase = getSupabase()
     const { error } = await supabase
       .from('customers')
       .insert({
@@ -104,6 +106,7 @@ const Dashboard: React.FC = () => {
                 </p>
                 <button
                   onClick={async () => {
+                    const supabase = getSupabase()
                     const { error } = await supabase.auth.resend({
                       type: 'signup',
                       email: user?.email || '',
