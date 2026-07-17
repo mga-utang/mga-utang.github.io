@@ -20,7 +20,7 @@ const CustomerProfile: React.FC = () => {
       fetchCustomer()
       fetchLedgers()
     }
-  }, [customerId])
+  }, [customerId, profile])
 
   const fetchCustomer = async () => {
     const { data, error } = await supabase

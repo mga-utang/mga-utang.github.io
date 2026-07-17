@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import { supabase } from '../supabaseClient'
-import { useAuth } from '../AuthContext'
 import { Store, User, Mail, Lock, ArrowRight } from 'lucide-react'
 
 const Auth: React.FC = () => {
@@ -10,7 +9,6 @@ const Auth: React.FC = () => {
   const [password, setPassword] = useState('')
   const [storeName, setStoreName] = useState('')
   const [ownerName, setOwnerName] = useState('')
-  const {} = useAuth()
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
