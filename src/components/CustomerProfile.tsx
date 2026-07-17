@@ -83,9 +83,17 @@ const CustomerProfile: React.FC = () => {
 
   const handleUpdateLedger = async () => {
     if (!profile || !customerId) return
+    const credit = Math.min(999999, Math.max(0, Number(newCredit) || 0))
+    const amount = credit.toFixed(2)
+
+    if (myLedger) {
+      if (!confirm(t('confirm.update_ledger', { amount }))) return
+    } else {
+      if (!confirm(t('confirm.open_ledger', { amount }))) return
+    }
+
     setLoading(true)
     const supabase = getSupabase()
-    const credit = Math.min(999999, Math.max(0, Number(newCredit) || 0))
 
     if (myLedger) {
       const { error } = await supabase

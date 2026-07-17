@@ -47,12 +47,15 @@ const Dashboard: React.FC = () => {
       return
     }
 
+    const name = newCustomerName.trim()
+    if (!confirm(t('confirm.add_customer', { name }))) return
+
     setLoading(true)
     const supabase = getSupabase()
     const { error } = await supabase
       .from('customers')
       .insert({
-        full_name: newCustomerName.trim(),
+        full_name: name,
         address_or_purok: newCustomerAddress.trim(),
         created_by_profile_id: profile.id,
       })
