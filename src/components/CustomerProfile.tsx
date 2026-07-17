@@ -4,7 +4,7 @@ import { getSupabase } from '../supabaseClient'
 import { useAuth } from '../AuthContext'
 import { useLanguage } from '../LanguageContext'
 import { Customer, Ledger, Profile } from '../types'
-import { ArrowLeft, Store, Plus, Minus, AlertCircle, CheckCircle, DollarSign } from 'lucide-react'
+import { ArrowLeft, Store, Plus, Minus, AlertCircle, CheckCircle, DollarSign, Edit3 } from 'lucide-react'
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -18,6 +18,9 @@ const CustomerProfile: React.FC = () => {
   const [myLedger, setMyLedger] = useState<Ledger | null>(null)
   const [newCredit, setNewCredit] = useState<string>('')
   const [loading, setLoading] = useState(false)
+  const [showEditCustomer, setShowEditCustomer] = useState(false)
+  const [editName, setEditName] = useState('')
+  const [editAddress, setEditAddress] = useState('')
 
   const isValidId = !!customerId && UUID_REGEX.test(customerId)
 
@@ -79,6 +82,34 @@ const CustomerProfile: React.FC = () => {
     if (debt <= 200) return <CheckCircle className="w-6 h-6 text-green-500" />
     if (debt <= 1000) return <AlertCircle className="w-6 h-6 text-yellow-500" />
     return <AlertCircle className="w-6 h-6 text-red-500" />
+  }
+
+  const isOwner = !!customer && !!profile && customer.created_by_profile_id === profile.id
+
+  const handleUpdateCustomer = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!customer) return
+    const name = editName.trim()
+    if (!confirm(t('confirm.update_customer', { name }))) return
+
+    setLoading(true)
+    const supabase = getSupabase()
+    const { error } = await supabase
+      .from('customers')
+      .update({
+        full_name: name,
+        address_or_purok: editAddress.trim(),
+      })
+      .eq('id', customer.id)
+
+    if (error) {
+      console.error('Customer update error:', error)
+      alert(t('cp.update_failed'))
+    } else {
+      setShowEditCustomer(false)
+      fetchCustomer()
+    }
+    setLoading(false)
   }
 
   const handleUpdateLedger = async () => {
@@ -171,10 +202,22 @@ const CustomerProfile: React.FC = () => {
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
                 <DollarSign className="w-8 h-8 text-blue-600" />
               </div>
-              <div>
+              <div className="flex-1">
                 <h2 className="text-xl font-bold text-gray-900">{customer.full_name}</h2>
                 <p className="text-gray-500">{customer.address_or_purok}</p>
               </div>
+              {isOwner && (
+                <button
+                  onClick={() => {
+                    setEditName(customer.full_name)
+                    setEditAddress(customer.address_or_purok)
+                    setShowEditCustomer(true)
+                  }}
+                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                >
+                  <Edit3 className="w-5 h-5" />
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -246,6 +289,58 @@ const CustomerProfile: React.FC = () => {
           </div>
         </div>
       </main>
+
+      {showEditCustomer && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50">
+          <div className="bg-white w-full max-w-md rounded-t-2xl p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">{t('cp.edit_customer')}</h2>
+            <form onSubmit={handleUpdateCustomer} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('dash.full_name')}
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  maxLength={150}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('dash.address_purok')}
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editAddress}
+                  onChange={(e) => setEditAddress(e.target.value)}
+                  maxLength={200}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEditCustomer(false)}
+                  className="flex-1 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  {t('dash.cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {loading ? t('cp.saving') : t('cp.update_customer')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
