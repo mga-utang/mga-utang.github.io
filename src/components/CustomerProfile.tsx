@@ -4,7 +4,7 @@ import { getSupabase } from '../supabaseClient'
 import { useAuth } from '../AuthContext'
 import { useLanguage } from '../LanguageContext'
 import { Customer, Ledger, Profile } from '../types'
-import { ArrowLeft, Store, Plus, Minus, AlertCircle, CheckCircle, DollarSign, Edit3 } from 'lucide-react'
+import { ArrowLeft, Store, Plus, Minus, AlertCircle, CheckCircle, DollarSign, Edit3, Trash2 } from 'lucide-react'
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -21,6 +21,7 @@ const CustomerProfile: React.FC = () => {
   const [showEditCustomer, setShowEditCustomer] = useState(false)
   const [editName, setEditName] = useState('')
   const [editAddress, setEditAddress] = useState('')
+  const [creatorStore, setCreatorStore] = useState<Profile | null>(null)
 
   const isValidId = !!customerId && UUID_REGEX.test(customerId)
 
@@ -30,6 +31,22 @@ const CustomerProfile: React.FC = () => {
       fetchLedgers()
     }
   }, [customerId, profile])
+
+  useEffect(() => {
+    if (customer?.created_by_profile_id) {
+      fetchCreatorStore(customer.created_by_profile_id)
+    }
+  }, [customer])
+
+  const fetchCreatorStore = async (profileId: string) => {
+    const supabase = getSupabase()
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', profileId)
+      .single()
+    if (data) setCreatorStore(data)
+  }
 
   const fetchCustomer = async () => {
     const supabase = getSupabase()
@@ -85,6 +102,52 @@ const CustomerProfile: React.FC = () => {
   }
 
   const isOwner = !!customer && !!profile && customer.created_by_profile_id === profile.id
+
+  const hasOtherLedgers = ledgers.some((l) => l.store_id !== profile?.id)
+
+  const handleDeleteCustomer = async () => {
+    if (!customer) return
+    if (hasOtherLedgers) {
+      alert(t('cp.has_other_ledgers'))
+      return
+    }
+    if (!confirm(t('confirm.delete_customer', { name: customer.full_name }))) return
+
+    setLoading(true)
+    const supabase = getSupabase()
+    const { error } = await supabase
+      .from('customers')
+      .delete()
+      .eq('id', customer.id)
+
+    if (error) {
+      console.error('Customer delete error:', error)
+      alert(t('cp.delete_failed'))
+    } else {
+      navigate('/')
+    }
+    setLoading(false)
+  }
+
+  const handleDeleteLedger = async () => {
+    if (!myLedger) return
+    if (!confirm(t('confirm.delete_ledger'))) return
+
+    setLoading(true)
+    const supabase = getSupabase()
+    const { error } = await supabase
+      .from('ledgers')
+      .delete()
+      .eq('id', myLedger.id)
+
+    if (error) {
+      console.error('Ledger delete error:', error)
+      alert(t('cp.delete_ledger_failed'))
+    } else {
+      fetchLedgers()
+    }
+    setLoading(false)
+  }
 
   const handleUpdateCustomer = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -207,17 +270,32 @@ const CustomerProfile: React.FC = () => {
                 <p className="text-gray-500">{customer.address_or_purok}</p>
               </div>
               {isOwner && (
-                <button
-                  onClick={() => {
-                    setEditName(customer.full_name)
-                    setEditAddress(customer.address_or_purok)
-                    setShowEditCustomer(true)
-                  }}
-                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                >
-                  <Edit3 className="w-5 h-5" />
-                </button>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => {
+                      setEditName(customer.full_name)
+                      setEditAddress(customer.address_or_purok)
+                      setShowEditCustomer(true)
+                    }}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  >
+                    <Edit3 className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={handleDeleteCustomer}
+                    disabled={loading}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
               )}
+            </div>
+            <div className="mt-3 pt-3 border-t border-gray-100 text-xs text-gray-400">
+              {creatorStore && (
+                <p>{t('cp.created_by', { store: creatorStore.store_name })}</p>
+              )}
+              <p>{t('cp.created_at', { date: new Date(customer.created_at).toLocaleDateString() })}</p>
             </div>
           </div>
         )}
@@ -286,6 +364,15 @@ const CustomerProfile: React.FC = () => {
             >
               {loading ? t('cp.saving') : (myLedger ? t('cp.update_ledger') : t('cp.open_ledger'))}
             </button>
+            {myLedger && (
+              <button
+                onClick={handleDeleteLedger}
+                disabled={loading}
+                className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-semibold hover:bg-red-100 transition-colors disabled:opacity-50"
+              >
+                {t('cp.delete_ledger')}
+              </button>
+            )}
           </div>
         </div>
       </main>

@@ -177,13 +177,33 @@ const Auth: React.FC = () => {
               {!loading && <ArrowRight className="w-5 h-5" />}
             </button>
           </form>
-          <div className="mt-6 text-center">
+          <div className="mt-6 text-center space-y-3">
             <button
               onClick={() => setIsSignUp(!isSignUp)}
               className="text-blue-600 hover:text-blue-700 font-medium"
             >
               {isSignUp ? t('auth.have_account') : t('auth.no_account')}
             </button>
+            {!isSignUp && (
+              <div>
+                <button
+                  onClick={async () => {
+                    if (!email.trim()) return
+                    const supabase = getSupabase()
+                    const { error } = await supabase.auth.resetPasswordForEmail(email)
+                    if (error) {
+                      console.error('Reset error:', error)
+                      alert(t('auth.reset_failed'))
+                    } else {
+                      alert(t('auth.reset_sent'))
+                    }
+                  }}
+                  className="text-sm text-gray-500 hover:text-gray-700"
+                >
+                  {t('auth.forgot_password')}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
