@@ -2,21 +2,27 @@ import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getSupabase } from '../supabaseClient'
 import { useAuth } from '../AuthContext'
+import { useLanguage } from '../LanguageContext'
 import { Customer, Ledger, Profile } from '../types'
 import { ArrowLeft, Store, Plus, Minus, AlertCircle, CheckCircle, DollarSign } from 'lucide-react'
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const CustomerProfile: React.FC = () => {
   const { customerId } = useParams<{ customerId: string }>()
   const navigate = useNavigate()
   const { profile } = useAuth()
+  const { t } = useLanguage()
   const [customer, setCustomer] = useState<Customer | null>(null)
   const [ledgers, setLedgers] = useState<(Ledger & { store: Profile })[]>([])
   const [myLedger, setMyLedger] = useState<Ledger | null>(null)
   const [newCredit, setNewCredit] = useState<string>('')
   const [loading, setLoading] = useState(false)
 
+  const isValidId = !!customerId && UUID_REGEX.test(customerId)
+
   useEffect(() => {
-    if (customerId) {
+    if (isValidId) {
       fetchCustomer()
       fetchLedgers()
     }
@@ -79,7 +85,7 @@ const CustomerProfile: React.FC = () => {
     if (!profile || !customerId) return
     setLoading(true)
     const supabase = getSupabase()
-    const credit = Number(newCredit) || 0
+    const credit = Math.min(999999, Math.max(0, Number(newCredit) || 0))
 
     if (myLedger) {
       const { error } = await supabase
@@ -91,7 +97,8 @@ const CustomerProfile: React.FC = () => {
         .eq('id', myLedger.id)
 
       if (error) {
-        alert('Error updating ledger: ' + error.message)
+        console.error('Ledger update error:', error)
+        alert(t('cp.save_failed'))
       } else {
         fetchLedgers()
       }
@@ -105,13 +112,32 @@ const CustomerProfile: React.FC = () => {
         })
 
       if (error) {
-        alert('Error opening ledger: ' + error.message)
+        console.error('Ledger insert error:', error)
+        alert(t('cp.save_failed'))
       } else {
         fetchLedgers()
       }
     }
 
     setLoading(false)
+  }
+
+  if (!isValidId) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-900 mb-2">{t('cp.invalid_title')}</h2>
+          <p className="text-gray-500 mb-6">{t('cp.invalid_msg')}</p>
+          <button
+            onClick={() => navigate('/')}
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+          >
+            {t('cp.back_dashboard')}
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -125,7 +151,7 @@ const CustomerProfile: React.FC = () => {
             >
               <ArrowLeft className="w-6 h-6" />
             </button>
-            <h1 className="text-lg font-bold text-gray-900">Customer Profile</h1>
+            <h1 className="text-lg font-bold text-gray-900">{t('cp.title')}</h1>
           </div>
         </div>
       </header>
@@ -147,17 +173,17 @@ const CustomerProfile: React.FC = () => {
 
         <div className={`p-6 rounded-2xl shadow-sm border-2 ${getRiskColor(totalDebt).replace('bg-', 'border-')}`}>
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-bold text-gray-900">COMMUNITY CREDIT RISK SUMMARY</h3>
+            <h3 className="text-lg font-bold text-gray-900">{t('cp.risk_summary')}</h3>
             {getRiskIcon(totalDebt)}
           </div>
           <div className="flex items-end gap-2">
             <span className="text-4xl font-bold text-gray-900">₱{totalDebt.toFixed(2)}</span>
-            <span className="text-gray-500 mb-1">Total Collective Debt</span>
+            <span className="text-gray-500 mb-1">{t('cp.total_debt')}</span>
           </div>
         </div>
 
         <div className="space-y-3">
-          <h3 className="text-lg font-semibold text-gray-900">Breakdown by Store</h3>
+          <h3 className="text-lg font-semibold text-gray-900">{t('cp.breakdown')}</h3>
           {ledgers.map((ledger) => (
             <div key={ledger.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
               <div className="flex items-center justify-between">
@@ -171,13 +197,13 @@ const CustomerProfile: React.FC = () => {
           ))}
           {ledgers.length === 0 && (
             <div className="text-center py-8 text-gray-500 bg-white rounded-xl shadow-sm border border-gray-200">
-              <p>No credit records yet</p>
+              <p>{t('cp.no_records')}</p>
             </div>
           )}
         </div>
 
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit My Store's Credit Ledger</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('cp.edit_ledger')}</h3>
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <button
@@ -190,6 +216,9 @@ const CustomerProfile: React.FC = () => {
                 type="number"
                 value={newCredit}
                 onChange={(e) => setNewCredit(e.target.value)}
+                min={0}
+                max={999999}
+                step="0.01"
                 className="flex-1 text-center text-2xl font-bold py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               <button
@@ -204,7 +233,7 @@ const CustomerProfile: React.FC = () => {
               disabled={loading}
               className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50"
             >
-              {loading ? 'Saving...' : (myLedger ? 'Update Ledger' : 'Open Ledger')}
+              {loading ? t('cp.saving') : (myLedger ? t('cp.update_ledger') : t('cp.open_ledger'))}
             </button>
           </div>
         </div>
