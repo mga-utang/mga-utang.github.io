@@ -1,6 +1,5 @@
 # deploy.ps1 - Build and deploy to GitHub Pages (main branch)
-# The source index.html (references /src/main.tsx) must stay intact for dev.
-# This script builds, then updates ONLY the asset references in root for deployment.
+# Handles the dev/prod index.html swap automatically.
 $ErrorActionPreference = "Stop"
 
 Write-Host "Building..." -ForegroundColor Cyan
@@ -17,15 +16,16 @@ if (-not (Test-Path .nojekyll)) {
     New-Item .nojekyll -ItemType File | Out-Null
 }
 
-# Generate deployment index.html from the built dist/index.html
-# This replaces the dev script reference with the built asset references
-Copy-Item dist\index.html index.deploy.html -Force
+# Replace root index.html with the built version for deployment
+Copy-Item dist\index.html index.html -Force
+
+Write-Host "Committing and pushing..." -ForegroundColor Cyan
+git add .
+git commit -m "deploy: $(Get-Date -Format 'yyyy-MM-dd HH:mm')" 2>&1 | Out-Null
+git push origin main 2>&1
 
 Write-Host ""
-Write-Host "Build complete! To deploy:" -ForegroundColor Green
-Write-Host "  1. Temporarily swap index.html for deployment:" -ForegroundColor Yellow
-Write-Host "     Copy-Item index.deploy.html index.html" -ForegroundColor White
-Write-Host "  2. Commit and push:" -ForegroundColor Yellow
-Write-Host "     git add . ; git commit -m 'deploy' ; git push origin main" -ForegroundColor White
-Write-Host "  3. Restore source index.html for development:" -ForegroundColor Yellow
-Write-Host "     git checkout index.html" -ForegroundColor White
+Write-Host "Deployed! Restoring source index.html for local dev..." -ForegroundColor Green
+git checkout HEAD~1 -- index.html
+
+Write-Host "Done. Local dev server will work normally with 'npx vite'." -ForegroundColor Green
