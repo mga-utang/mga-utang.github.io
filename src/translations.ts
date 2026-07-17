@@ -187,7 +187,7 @@ const translations = {
     'cp.back_dashboard': 'Balik sa Dashboard',
     'cp.title': 'Profile sa Customer',
     'cp.risk_summary': 'KINATIBUK-AN NGA RESGO SA PAUTANG SA TINDAHAN',
-    'cp.total_debt': 'Total nga Utang sa Matag Tindahan',
+    'cp.total_debt': 'Total nga Utang sa Tanang Tindahan',
     'cp.breakdown': 'Detalye Matag Tindahan',
     'cp.no_records': 'Wala pay record sa kredito',
     'cp.edit_ledger': 'I-edit ang Utang sa Akong Tindahan',
